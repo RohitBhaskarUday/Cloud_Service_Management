@@ -10,15 +10,7 @@ class SubscriptionPlan(BaseModel):
     api_permissions: List[str]
     usagelimit: int
 
-class User(BaseModel):
-    _id: ObjectId
-    username:str
-    password:str
-    isAdmin: bool = False  # Add default value
-    subscription_plan: List[str] = []  # Add default value
-    usage: int = 0  # Add default value 
-    limit: int = 0
-    permissions: List[str] = []
+
        
 
 class Permission(BaseModel):
@@ -27,6 +19,18 @@ class Permission(BaseModel):
     name: str
     api_endpoint:str
     description: str
+    
+    
+class User(BaseModel):
+    _id: ObjectId
+    username:str
+    password:str
+    isAdmin: bool = False  # Add default value
+    subscription_plan: dict= {}  # Add default value
+    permissions: List[Permission]=[]
+    usage: int = 0  # Add default value 
+    limit: int = 0
+    permissions: List[str] = []
     
 
 class Token(BaseModel):
