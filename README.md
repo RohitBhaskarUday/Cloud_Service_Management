@@ -38,7 +38,7 @@ Ensure MongoDB is installed and running locally or configure the connection deta
 Start the FastAPI server:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app
 This command starts the FastAPI server locally. The --reload flag enables auto-reloading when code changes are detected (for development).
 ```
 ## Accessing the API
