@@ -40,8 +40,8 @@ Start the FastAPI server:
 ```bash
 uvicorn app.main:app --reload
 This command starts the FastAPI server locally. The --reload flag enables auto-reloading when code changes are detected (for development).
-
-Accessing the API Documentation
+```
+## Accessing the API
 Launch Postman.
 Set the request URL to http://127.0.0.1:8000/.
 This interface allows you to explore and test the available endpoints interactively using Postman
