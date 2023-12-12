@@ -25,74 +25,57 @@ async def index(request: Request):
 
 #APIS
 @app.get("/storage")
-async def storage_service(current_user: User = Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
+async def storage_service(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorClient = Depends(get_db)
+):
+    print("The user is here.. ",current_user)
+    
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-
-    # Check if the user has the necessary permission to access the /storage endpoint
+    
     required_permission = "/storage"
-
-    # Check if the usage limit has been exhausted
-    if current_user.usage <= 0:
+    if current_user.get("usage", 0) <= 0:
         raise HTTPException(status_code=403, detail="Usage limit exhausted")
 
     # Check if the required permission is in the user's subscription plan
-    if required_permission not in current_user.subscription_plan.get("api_permissions", []):
+    if required_permission not in current_user.get("subscription_plan", {}).get("api_permissions", []):
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # Reduce the usage by 1
-    current_user.usage -= 1
-    
-    await db.User.update_one({"_id": ObjectId(current_user["_id"])},
-        {"$set": {"usage": current_user["usage"]}})
+    result = await db.User.update_one(
+        {"_id": ObjectId(current_user["_id"])},
+        {"$inc": {"usage": -1}}
+    )
+
+    if result.modified_count != 1:
+        raise HTTPException(status_code=500, detail="Failed to update usage")
 
     # Your existing logic for the /storage service goes here
     return {"message": "Storage service is running"}
 
 @app.get("/compute")
 async def compute_service(current_user: User = Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    # Check if the user is authenticated
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-
-    # Check if the user has the necessary permission to access the /compute endpoint
     required_permission = "/compute"
-
-    # Check if the usage limit has been exhausted
     if current_user.usage <= 0:
         raise HTTPException(status_code=403, detail="Usage limit exhausted")
-
-    # Check if the required permission is in the user's subscription plan
     if required_permission not in current_user.subscription_plan.get("api_permissions", []):
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    # Reduce the usage by 1
     current_user.usage -= 1
-
-    # Your existing logic for the /compute service goes here
     return {"message": "Compute service is running"}
 
 @app.get("/network")
 async def network_service(current_user: User = Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    # Check if the user is authenticated
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-
-    # Check if the user has the necessary permission to access the /network endpoint
     required_permission = "/network"
-
-    # Check if the usage limit has been exhausted
     if current_user.usage <= 0:
         raise HTTPException(status_code=403, detail="Usage limit exhausted")
-
-    # Check if the required permission is in the user's subscription plan
     if required_permission not in current_user.subscription_plan.get("api_permissions", []):
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    # Reduce the usage by 1
     current_user.usage -= 1
-
-    # Your existing logic for the /network service goes here
     return {"message": "Network service is running"}
 
 @app.get("/database")
@@ -109,38 +92,24 @@ async def database_service(current_user: User = Depends(get_current_user), db: A
 
 @app.get("/modeling")
 async def modeling_service(current_user: User = Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    # Check if the user is authenticated
     if not current_user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-
-    # Check if the user has the necessary permission to access the /modeling endpoint
     required_permission = "/modeling"
-
-    # Check if the usage limit has been exhausted
     if current_user.usage <= 0:
         raise HTTPException(status_code=403, detail="Usage limit exhausted")
-
-    # Check if the required permission is in the user's subscription plan
     if required_permission not in current_user.subscription_plan.get("api_permissions", []):
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    # Reduce the usage by 1
     current_user.usage -= 1
-
-    # Your existing logic for the /modeling service goes here
     return {"message": "Modeling service is running"}
 
 
 @app.get("/view-user-plan")
 async def view_plan(current_user: dict = Depends(verify_token),db: AsyncIOMotorClient = Depends(get_db)):
-    # Extract user details from the token payload
     user_id = current_user.get("sub")
     username = current_user.get("username")
     is_admin = current_user.get("is_admin")
-    # Retrieve user details from the database
     user_details = await db.User.find_one({"_id": ObjectId(user_id)})
     if user_details:
-        # If the user has a subscription plan
         if "subscription_plan" in user_details:
             subscription_plan = user_details["subscription_plan"]
             usage = user_details.get("usage", 0)
@@ -153,7 +122,6 @@ async def view_plan(current_user: dict = Depends(verify_token),db: AsyncIOMotorC
                 "limit": limit
             }
         else:
-            # If the user is not subscribed to any plan
             return {
                 "username": username,
                 "isAdmin": is_admin,
@@ -172,11 +140,9 @@ async def create_subscription_plan(
     current_user: User = Depends(get_current_user)
 ):
     if current_user.isAdmin:
-        # Check if the plan with the given name already exists
         existing_plan = await db.Subscription_Plan.find_one({"plan_id": plan_data.plan_id})
         if existing_plan:
             raise HTTPException(status_code=400, detail="Plan with this name already exists")
-        # Insert the new plan into the MongoDB collection
         result = await db.Subscription_Plan.insert_one({
             "plan_id":plan_data.plan_id,
             "plan": plan_data.plan,
@@ -184,10 +150,7 @@ async def create_subscription_plan(
             "api_permissions": plan_data.api_permissions,
             "usagelimit": plan_data.usagelimit
         })
-
-        # Retrieve the inserted plan
         inserted_plan = await db.Subscription_Plan.find_one({"_id": result.inserted_id})
-
         return inserted_plan
     else:
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -202,21 +165,16 @@ async def modify_subscription_plan(
 ):
     if not current_user.isAdmin:
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    # Ensure the plan with the given ID exists
     print(f"Received plan_id: {plan_id}")
     existing_plan = await db.Subscription_Plan.find_one({"plan_id": plan_id})
     print(f"Existing plan: {existing_plan}")
 
     if existing_plan is None:
         raise HTTPException(status_code=404, detail="Plan not found")
-
-    # Update the plan details with only the provided fields
     await db.Subscription_Plan.update_one(
         {"plan_id": plan_id},
         {"$set": updated_plan_data.dict(exclude_unset=True)},
     )
-    # Return the updated plan
     return updated_plan_data
 
 
@@ -227,15 +185,10 @@ async def delete_subscription_plan(
     db: AsyncIOMotorClient = Depends(get_db),
 ):
     if current_user.isAdmin:
-        # Ensure the plan with the given ID exists
         existing_plan = await db.Subscription_Plan.find_one({"plan_id": plan_id})
         if existing_plan is None:
             raise HTTPException(status_code=404, detail="Plan not found")
-
-        # Delete the plan
         await db.Subscription_Plan.delete_one({"plan_id": plan_id})
-
-        # Return the deleted plan
         return existing_plan
     else:
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -248,13 +201,11 @@ async def subscribe_to_plan(
     current_user: dict = Depends(verify_token),
     db: AsyncIOMotorClient = Depends(get_db)
 ):
-    # Retrieve the subscription plan details
     subscription_plan = await db.Subscription_Plan.find_one({"plan_id":plan_id})
 
     if not subscription_plan:
         raise HTTPException(status_code=404, detail="Subscription plan not found")
     usagelimit = subscription_plan.get("usagelimit", 0)
-    # Update the user model with subscription details
     result = await db.User.update_one(
         {"_id": ObjectId(current_user["sub"])},
         {
@@ -293,15 +244,10 @@ async def add_permission(
     db: AsyncIOMotorClient = Depends(get_db)
 ):
     if current_user.isAdmin:
-        # Check if the permission with the given name already exists
         existing_permission = await db.Permissions.find_one({"name": permission_request.name})
         if existing_permission:
             raise HTTPException(status_code=400, detail="Permission with this name already exists")
-
-        # Insert the new permission into the MongoDB collection
         result = await db.Permissions.insert_one(permission_request.dict())
-
-        # Retrieve the inserted permission
         inserted_permission = await db.Permissions.find_one({"_id": result.inserted_id})
 
         return inserted_permission
@@ -361,10 +307,9 @@ async def register(form_data: User, db: AsyncIOMotorClient = Depends(get_db)):
         inserted_user = await db.User.find_one({"_id": result.inserted_id})
 
 
-        print(f"Inserted user: {inserted_user}")  # Add this line for debugging
+        print(f"Inserted user: {inserted_user}") #Adding this line for debugging
 
         if inserted_user:
-            # Generate JWT token for the newly registered user
             token_data = {"sub": str(inserted_user["_id"]), "username": inserted_user["username"], "is_admin": inserted_user["isAdmin"]}
             token = create_jwt_token(token_data)
 

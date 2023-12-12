@@ -63,7 +63,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncIOMotor
     if user is None:
         raise credentials_exception
     
-    return User(**user)
+    return dict(user)
   
   
 async def get_subscription_plan_by_id(plan_id: int, db: AsyncIOMotorClient = Depends(get_db)):
