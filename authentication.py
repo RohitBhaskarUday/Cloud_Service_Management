@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException
 from database import get_db
 from motor.motor_asyncio import AsyncIOMotorClient
-from model import User
 from bson import ObjectId
 
 SECRET_KEY = "your-secret-key"
