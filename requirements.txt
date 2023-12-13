@@ -1,0 +1,13 @@
+pip install fastapi --- fastapi installation
+
+pip install "uvicorn[standard]" you will also need an Asynchronous Server Gateway Interface Server for production as Uvicorn.  
+
+The application is launched on the Uvicorn server with the following command
+
+uvicorn <filename>:<fastapi instance>
+
+uvicorn main:app 
+
+pip install jinja2 -- in order to use the templates files within the application.
+
+pip install motor -- for connecting with MongoDB.
