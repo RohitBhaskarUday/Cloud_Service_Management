@@ -8,7 +8,7 @@ The FastAPI Cloud Subscription Service is a backend system designed to manage su
 
 - Rohit Bhaskar Uday (CWID: 884451915)
 - Sumanth Mittapally (CWID: 885157511)
-- Rohit Chowdary Yadla (CWID: 88146852)
+- Rohit Chowdary Yadla (CWID: 885146852)
 
 ### Demonstration
 
